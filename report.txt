@@ -1,0 +1,112 @@
+ECE454, Fall 2022
+Homework 4: Pthreads and Synchronization
+Assigned: Nov 7th, Due: Nov 20th, 11:59PM
+Nathan Jones - 1005003023 - nathan.jones@mail.utoronto.ca
+
+Q1. Why is it important to #ifdef out methods and datastructures that aren’t used for different versions of
+randtrack? 
+
+it is important to #ifdef out methods and datastructures that aren’t used for different versions of
+randtrack as to reduce the overhead of the program, both in terms of program size and compilation time. 
+It is also important to #ifdef out methods and datastructures that aren’t used for different versions of
+randtrack because if you didn't it might cause runtime errors or unexpected behavior. I found that making 
+seperate files was easier for my own organaziation, so I didn't use #ifdef.
+
+Q2. Can you implement this without modifying the hash class, or without knowing its internal
+implementation?
+
+You can implement the list level locks without modifying the hash class. However, you would need to (at least) 
+partially understand the internal implementation of the hash class, I completed the list level lock this way. 
+For my list level locks I made an array of mutex locks, with one index per list, and then only locked the 
+mutex lock corresponding to the list (using the HASH_INDEX(key, mutex_locks_size-1)]) function) when looking 
+up / inserting.
+
+Q3. Can you properly implement this solely by modifying the hash class methods lookup and insert?
+Explain.
+
+I tried to implement the list level lock solely by modifying the hash class methods lookup and insert - 
+I found it was more difficult then the method I implemented. Assuming we could pass in an array of mutex locks 
+(with one lock / list) or be able to add an array within the hash class that is initiallized and pointed too, 
+then I think it would be achievable. If the methods I just described (array of locks, or private array) is considered
+out of bounds, I don't think you could lock the list (if you put the list lock in the head, threads past the head in lookup might
+ race or miss the lock being locked, or how could another thread check the head if it's being altered, etc). 
+
+Q4. Can you implement this by adding to the hash class a new function lookup and insert if absent? Explain.
+
+I think you could implement the list level lock by adding to the hash class a new function lookup and insert if absent, 
+assuming you added a method of tracking which lists are locked that is avaible to all threads. I belive it would be 
+impossible to implement the list level lock by storing the mutex for the list in the head of the list as this could 
+cause racing. The list of locks could be passed in potentially.
+
+
+Q5. Can you implement it by adding new methods to the hash class lock list and unlock list? Explain.
+Implement the simplest solution above that works (or a better one if you can think of one).
+
+I missed this question before I completed the list lock, and I'm out of time now. I believe
+you could implement the list level locks by adding new methods to the hash class lock list 
+and unlock list, as long as there was a structure accessible to each thread showing which 
+lists are locked. You could do this by having a structure in the hash class that contains 
+an array with a lock for each list, and then have the lock function lock the mutex at the
+list index when given a list index. You could have the opposite happen for an unlock function.
+
+Q7. What are the pros and cons of this approach?
+
+The pros of the reduction approach is that it does not suffer performance loss from threads waiting to access
+a certian resource (as each thread has its own copy of the hash table). However the con to this approach is having 
+to merge all the copies of the hash table together at the end.
+
+Q8. For samples to skip set to 50, what is the overhead for each parallelization approach? Report this as the
+runtime of the parallel version with one thread divided by the runtime of the single-threaded version.
+
+randtrack Global Lock: 1.02
+randtrack List Lock: 1.05
+randtrack Element lock: 1.08
+randtrack Reduction: I did not complete
+
+Q9. How does each approach perform as the number of threads increases? If performance gets worse for a
+certain case, explain why that may have happened.
+
+Runtimes for the list level lock and element level approaches decrease with more threads, however the global lock 
+approach has a longer runtime when running 4 threads (4.59s) then it did when running on two threads (4.5). I believe
+the global lock suffers a performance loss with more threads because it has more overhead with 4 threads than it does 
+with 2 threads, and because the lock is global, the extra threads end up waiting (The global lock does not benefit 
+from more threads as 3/4 threads would be waiting for the lock to be released while 1 thread is adding / looking up). 
+The runtime is also smaller when running on two threads then when running single threaded - I belive this means that 
+the global lock approach benefits from running on two threads, but after two threads starts to suffer from performance 
+loss due to overhead from useless threads.
+
+Q10. Repeat the data collection above with samples to skip set to 100 and give the table. How does this
+change impact the results compared with when set to 50? Why?
+
+Single Thread
+randtrack Global Lock: 1.01
+randtrack List Lock: 1.03
+randtrack Element lock: 1.04
+randtrack Reduction: I did not complete
+
+Two Threads
+randtrack Global Lock: 0.55
+randtrack List Lock: 0.53
+randtrack Element lock: 0.52
+randtrack Reduction: I did not complete
+
+Four Threads
+randtrack Global Lock: 0.33
+randtrack List Lock: 0.28
+randtrack Element lock: 0.25
+randtrack Reduction: I did not complete
+
+Setting samples to skip to 100 made the approaches have a more tight performance increase. Global lock also performed 
+better for 4 cores then it did for 2 cores, which is different then for samples to skip set to 50. This is probably 
+because there is less samples to do overall, so the overhead / performance from each parallel thread is minimized.
+
+
+Q11. Which approach should OptsRus ship? Keep in mind that some customers might be using multicores
+with more than 4 cores, while others might have only one or two cores. 
+
+Although I didn't finish the reduction lock, in theory it would be the best version to ship as it would scale with
+number of cores (list lock and element lock perform well with more threads, but run significantly slower when using one 
+core). With reduction approach, it would perform the same as randtrack base when single threaded, and with more cores probably be equal if not faster 
+to the element lock.
+
+
